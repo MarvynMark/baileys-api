@@ -9,9 +9,6 @@ on:
     types: [released]
   workflow_dispatch:
 
-env:
-  GITHUB_REPO: ghcr.io/${{ github.repository }}
-
 jobs:
   build:
     strategy:
@@ -35,6 +32,7 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "GITHUB_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Update package.json version
         run: |
@@ -119,16 +117,17 @@ jobs:
           GIT_REF: ${{ github.event.release.tag_name || github.ref_name }}
         run: |
           SANITIZED_REF=$(echo "$GIT_REF" | sed 's/\//-/g')
+          REPO="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           docker buildx imagetools create \
-            -t ghcr.io/${{ github.repository }}:${SANITIZED_REF} \
-            -t ghcr.io/${{ github.repository }}:latest \
-            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+            -t ${REPO}:${SANITIZED_REF} \
+            -t ${REPO}:latest \
+            $(printf "${REPO}@sha256:%s " *)
 
       - name: Inspect image
         env:
           GIT_REF: ${{ github.event.release.tag_name || github.ref_name }}
         run: |
           SANITIZED_REF=$(echo "$GIT_REF" | sed 's/\//-/g')
-          REPO="ghcr.io/${{ github.repository }}"
+          REPO="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           docker buildx imagetools inspect ${REPO}:${SANITIZED_REF}
           docker buildx imagetools inspect ${REPO}:latest
