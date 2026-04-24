@@ -9,6 +9,7 @@ This project provides an API interface for interacting with WhatsApp using the [
 > [!NOTE]
 > 🇧🇷 Esse README também está disponível em português: [README-pt.md](README-pt.md)
 
+
 ## Stack
 
 - **Runtime**: [Bun](https://bun.sh/)
