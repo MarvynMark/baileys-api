@@ -1,56 +1,67 @@
 version: "3"
 
 services:
-    redis:
-        image: redis:7-alpine
-        restart: always
-        volumes:
-            - 'redis_data:/data'
-        networks:
-            - baileys-network
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command:
+      - sh
+      - '-c'
+      - 'redis-server --requirepass "${REDIS_PASSWORD}"'
+    volumes:
+      - 'redis_data:/data'
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'redis-cli -h localhost -p 6379 -a $${REDIS_PASSWORD} ping'
+      interval: 20s
+      timeout: 20s
+      retries: 10
+    networks:
+      - baileys-network
 
-    baileys-api:
-        image: ghcr.io/marvynmark/baileys-api
-        pull_policy: always
-        volumes:
-            - 'baileys_storage:/app/storage'
-        environment:
-            NODE_ENV: production
-            REDIS_URL: 'redis://redis:6379'
-            REDIS_PASSWORD: '${REDIS_PASSWORD}'
-            LOG_LEVEL: info
-            BAILEYS_LOG_LEVEL: error
-            BAILEYS_PROVIDER_DEFAULT_API_KEY: '${SERVICE_PASSWORD_64_DEFAULTAPIKEY}'
-            MEDIA_CLEANUP_ENABLED: 'true'
-            MEDIA_CLEANUP_INTERVAL_MS: '3600000'
-            MEDIA_MAX_AGE_HOURS: '24'
-        command:
-            - sh
-            - '-c'
-            - 'bun manage-api-keys create user ${SERVICE_PASSWORD_64_DEFAULTAPIKEY} && bun start'
-        restart: always
-        healthcheck:
-            test:
-                - CMD-SHELL
-                - 'wget -qO- http://localhost:3025/status'
-            interval: 20s
-            timeout: 20s
-            retries: 10
-        depends_on:
-            - redis
-        networks:
-            baileys-network: null
-            chatwoot-network:
-                aliases:
-                    - baileys-api
+  baileys-api:
+    image: ghcr.io/marvynmark/baileys-api
+    pull_policy: always
+    volumes:
+      - 'baileys_storage:/app/storage'
+    environment:
+      NODE_ENV: production
+      REDIS_URL: 'redis://redis:6379'
+      REDIS_PASSWORD: '${REDIS_PASSWORD}'
+      LOG_LEVEL: info
+      BAILEYS_LOG_LEVEL: error
+      BAILEYS_PROVIDER_DEFAULT_API_KEY: '${SERVICE_PASSWORD_64_DEFAULTAPIKEY}'
+      MEDIA_CLEANUP_ENABLED: 'true'
+      MEDIA_CLEANUP_INTERVAL_MS: '3600000'
+      MEDIA_MAX_AGE_HOURS: '24'
+    command:
+      - sh
+      - '-c'
+      - 'bun manage-api-keys create user ${SERVICE_PASSWORD_64_DEFAULTAPIKEY} && bun start'
+    restart: always
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'wget -qO- http://localhost:3025/status'
+      interval: 20s
+      timeout: 20s
+      retries: 10
+    depends_on:
+      - redis
+    networks:
+      - baileys-network
+      - chatwoot-network
 
-  volumes:
-    baileys_storage:
-    redis_data:
+volumes:
+  baileys_storage:
+  redis_data:
 
-  networks:
-    baileys-network:
-        name: ${BAILEYS_NETWORK:-baileys-network}
-    chatwoot-network:
-        name: ${CHATWOOT_NETWORK}
-        external: true
+networks:
+  baileys-network:
+    name: ${BAILEYS_NETWORK:-baileys-network}
+  chatwoot-network:
+    name: ${CHATWOOT_NETWORK}
+    external: true
