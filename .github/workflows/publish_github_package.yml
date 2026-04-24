@@ -131,3 +131,9 @@ jobs:
           REPO="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           docker buildx imagetools inspect ${REPO}:${SANITIZED_REF}
           docker buildx imagetools inspect ${REPO}:latest
+
+      - name: Trigger Coolify deploy
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "https://coolify.softaxon.tech/api/v1/deploy?uuid=szkwgaldd2toliveqsl75g0n&force=false" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
